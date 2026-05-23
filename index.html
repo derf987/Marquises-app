@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="description" content="Découvrez les Îles Marquises : légendes, plantes médicinales, personnalités et traditions ancestrales">
+    <meta name="theme-color" content="#1a5c2e">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="icon-512.png">
+    <link rel="icon" href="icon-512.png">
+    <link rel="manifest" href="manifest.json">
+    <title>Îles Marquises - Te Henua Enata</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        :root{--primary:#1a5c2e;--accent:#e8943a;--bg:#fdf6e8;--card-bg:#ffffff;--text:#2c1810;--text-light:#5c4030;--radius:16px;--radius-sm:10px}
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+        #app{max-width:500px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;position:relative}
+
+        /* HEADER MARQUISIEN */
+        header{background:linear-gradient(135deg,#1a5c2e 0%,#0d3b1a 40%,#1a3a2a 100%);color:white;padding:14px 16px 20px;position:sticky;top:0;z-index:100;box-shadow:0 4px 20px rgba(0,0,0,0.3);text-align:center}
+        .header-icon{font-size:3rem;display:block;animation:float 3s ease-in-out infinite}
+        @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+        header h1{font-size:1.3rem;margin:8px 0 2px;display:flex;justify-content:center;align-items:center;gap:8px}
+        .lang-select{background:rgba(255,255,255,0.15);color:white;border:1px solid rgba(255,255,255,0.3);padding:5px 10px;border-radius:20px;font-size:0.8rem;position:absolute;top:14px;right:16px}
+        .subtitle{font-size:0.75rem;opacity:0.85;font-style:italic}
+        #search-input{width:100%;padding:10px 14px;border-radius:25px;border:none;margin-top:12px;font-size:0.9rem;background:rgba(255,255,255,0.95)}
+
+        /* AUDIO */
+        .audio-bar{display:flex;align-items:center;gap:8px;padding:8px 14px;background:rgba(255,255,255,0.1);margin-top:8px;border-radius:20px}
+        .audio-bar span{font-size:0.7rem;flex:1}
+        .audio-btn{background:var(--accent);color:white;border:none;width:36px;height:36px;border-radius:50%;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center}
+        .audio-btn:active{transform:scale(0.9)}
+        .audio-btn.playing{animation:pulse 1s infinite}
+        @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(232,148,58,0.4)}50%{box-shadow:0 0 20px 10px rgba(232,148,58,0.2)}}
+
+        /* SOUS-MENUS ÎLES */
+        .submenu{display:flex;gap:6px;padding:12px 14px;overflow-x:auto;scrollbar-width:none;background:var(--card-bg);position:sticky;top:130px;z-index:50;box-shadow:0 2px 8px rgba(0,0,0,0.05);-ms-overflow-style:none}
+        .submenu::-webkit-scrollbar{display:none}
+        .submenu-btn{padding:8px 16px;border-radius:20px;border:1px solid var(--primary);background:transparent;color:var(--primary);font-size:0.8rem;cursor:pointer;white-space:nowrap;transition:all 0.3s;font-weight:500;display:flex;flex-direction:column;align-items:center;gap:2px}
+        .submenu-btn .island-icon{font-size:1.2rem}
+        .submenu-btn.active,.submenu-btn:hover{background:var(--primary);color:white}
+
+        /* NAVIGATION */
+        nav{display:flex;background:var(--card-bg);position:sticky;bottom:0;z-index:100;box-shadow:0 -2px 16px rgba(0,0,0,0.1);border-radius:20px 20px 0 0;padding-bottom:env(safe-area-inset-bottom)}
+        .nav-btn{flex:1;padding:10px 4px 8px;border:none;background:transparent;cursor:pointer;font-size:0.6rem;color:#888;transition:all 0.3s;display:flex;flex-direction:column;align-items:center;gap:3px}
+        .nav-btn.active{color:var(--primary);font-weight:700}
+        .nav-btn .nav-icon{font-size:1.2rem;transition:transform 0.3s}
+        .nav-btn:hover .nav-icon{animation:bounce 0.5s ease}
+        @keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+
+        /* CONTENU */
+        main{padding:14px;flex:1;padding-bottom:80px}
+
+        /* CARTES 3D */
+        .card{background:var(--card-bg);border-radius:var(--radius);padding:16px;margin-bottom:14px;box-shadow:0 4px 16px rgba(0,0,0,0.08);border-left:4px solid var(--accent);cursor:pointer;position:relative;overflow:hidden;transition:all 0.4s;animation:cardIn 0.6s ease forwards;opacity:0}
+        .card:hover{transform:translateY(-4px) rotateX(2deg);box-shadow:0 12px 32px rgba(0,0,0,0.15)}
+        .card:active{transform:scale(0.97)}
+        @keyframes cardIn{from{opacity:0;transform:translateY(30px)scale(0.95)}to{opacity:1;transform:translateY(0)scale(1)}}
+        .card h3{color:var(--primary);margin-bottom:8px;font-size:1rem;display:flex;align-items:center;gap:8px}
+        .card p{font-size:0.82rem;color:var(--text-light);line-height:1.5}
+        .tag{display:inline-block;background:#e8f5e9;color:var(--primary);padding:3px 8px;border-radius:12px;font-size:0.65rem;margin:6px 4px 0 0;font-weight:600}
+
+        /* BOUTON ÉCOUTER */
+        .speak-card-btn{display:inline-flex;align-items:center;gap:4px;background:#e8f5e9;color:var(--primary);border:1px solid var(--primary);padding:5px 10px;border-radius:15px;font-size:0.7rem;cursor:pointer;margin-top:8px;transition:all 0.3s}
+        .speak-card-btn:active{background:var(--primary);color:white}
+        .speak-card-btn .spinner{display:none;width:14px;height:14px;border:2px solid var(--primary);border-top:2px solid transparent;border-radius:50%;animation:spin 0.8s linear infinite}
+        .speak-card-btn.playing .spinner{display:inline-block}
+        .speak-card-btn.playing{background:var(--primary);color:white}
+        @keyframes spin{to{transform:rotate(360deg)}}
+
+        /* FAVORIS */
+        .fav-star{position:absolute;top:12px;right:14px;font-size:1.3rem;cursor:pointer;z-index:5;transition:transform 0.3s}
+        .fav-star:active{transform:scale(1.5)rotate(15deg)}
+        .fav-star.active{animation:popStar 0.6s}
+        @keyframes popStar{0%{transform:scale(1)}30%{transform:scale(1.5)rotate(15deg)}60%{transform:scale(0.8)rotate(-10deg)}100%{transform:scale(1)}}
+
+        /* MÉDIAS */
+        .media-gallery{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:10px}
+        .media-item{width:100%;aspect-ratio:1;object-fit:cover;border-radius:var(--radius-sm);cursor:pointer;transition:transform 0.4s;background:#e0e0e0}
+        .media-item:hover{transform:scale(1.05)}
+        .local-video{width:100%;border-radius:var(--radius-sm);margin-top:10px;max-height:300px}
+        .image-fallback{width:100%;aspect-ratio:1;background:linear-gradient(135deg,#e8f5e9,#c8e6c9);display:flex;align-items:center;justify-content:center;font-size:3rem;border-radius:var(--radius-sm)}
+
+        /* MODAL */
+        .modal{position:fixed;inset:0;z-index:300;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,0.85);opacity:0;pointer-events:none;transition:opacity 0.3s}
+        .modal.active{opacity:1;pointer-events:all}
+        .modal-content{background:var(--card-bg);border-radius:var(--radius);padding:20px;max-width:90%;max-height:85vh;overflow-y:auto;position:relative;transform:scale(0.8);transition:transform 0.4s}
+        .modal.active .modal-content{transform:scale(1)}
+        .modal-close{position:absolute;top:10px;right:14px;background:var(--bg);border:none;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:1.1rem;z-index:5}
+        .modal img{width:100%;border-radius:var(--radius-sm);margin-bottom:10px}
+
+        /* PARTICULES */
+        .particle{position:fixed;pointer-events:none;z-index:999;font-size:1.5rem;animation:floatUp 2s ease-out forwards}
+        @keyframes floatUp{0%{opacity:1;transform:translateY(0)scale(1)rotate(0)}100%{opacity:0;transform:translateY(-120px)scale(0)rotate(180deg)}}
+
+        /* TOAST */
+        .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:var(--primary);color:white;padding:10px 20px;border-radius:25px;font-size:0.85rem;z-index:500;animation:toastIn 0.4s}
+        @keyframes toastIn{from{opacity:0;transform:translateX(-50%)translateY(20px)}to{opacity:1;transform:translateX(-50%)translateY(0)}}
+
+        /* CARTE */
+        #map-container{width:100%;height:50vh;border-radius:var(--radius);overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.1);margin-bottom:14px}
+        #map{width:100%;height:100%}
+
+        /* DARK MODE */
+        [data-theme="dark"]{--bg:#1a1410;--card-bg:#2a2018;--text:#f0e6d8;--text-light:#c4b8a8;--primary:#3d9a5c}
+        [data-theme="dark"] .submenu{background:#2a2018}
+        [data-theme="dark"] .tag{background:#1a3a20;color:#4db868}
+    </style>
+</head>
+<body>
+    <div id="app">
+        <header>
+            <span class="header-icon">🗿</span>
+            <h1><span id="header-title">Îles Marquises</span></h1>
+            <p class="subtitle" id="header-subtitle">Te Henua Enata - La Terre des Hommes</p>
+            <select id="language-selector" class="lang-select">
+                <option value="fr">🇫🇷</option>
+                <option value="en">🇬🇧</option>
+                <option value="mrq">🏝️ Reo Enana</option>
+            </select>
+            <input type="text" id="search-input" placeholder="🔍 Rechercher une légende, plante, personnalité...">
+            <div class="audio-bar">
+                <span id="audio-status">🔇 Prêt pour la lecture audio</span>
+                <button class="audio-btn" id="audio-toggle">🔊</button>
+            </div>
+        </header>
+
+        <!-- Sous-menu des 6 îles -->
+        <div class="submenu" id="submenu"></div>
+
+        <main id="content"></main>
+
+        <nav>
+            <button class="nav-btn active" data-tab="legends"><span class="nav-icon">📜</span>Légendes</button>
+            <button class="nav-btn" data-tab="medicinal"><span class="nav-icon">🌿</span>Plantes</button>
+            <button class="nav-btn" data-tab="personalities"><span class="nav-icon">👤</span>Personnes</button>
+            <button class="nav-btn" data-tab="map"><span class="nav-icon">📍</span>Carte</button>
+        </nav>
+    </div>
+
+    <div class="modal" id="modal">
+        <div class="modal-content" id="modal-content"></div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+    // ═══════════════════════════════════════════════════
+    // CONFIGURATION IMAGES LOCALES
+    // ═══════════════════════════════════════════════════
+    const LOCAL_IMAGES={
+        'nuku-hiva':'images/nuku-hiva.jpg',
+        'hiva-oa':'images/hiva-oa.jpg',
+        'ua-pou':'images/ua-pou.jpg',
+        'ua-huka':'images/ua-huka.jpg',
+        'tahuata':'images/tahuata.jpg',
+        'fatu-hiva':'images/fatu-hiva.jpg',
+        'tiki-paeke':'images/tiki-paeke.jpg',
+        'honu-tortue':'images/honu-tortue.jpg',
+        'nono-plante':'images/nono-plante.jpg',
+        'kava-racine':'images/kava-racine.jpg',
+        'monoi':'images/monoï.jpg',
+        'tamanu':'images/tamanu.jpg',
+        'gauguin':'images/gauguin.jpg',
+        'brel':'images/brel.jpg',
+        'melville':'images/melville.jpg',
+        'tatouage':'images/tatouage.jpg'
+    };
+    const LOCAL_VIDEOS={'haka-marquises':'videos/haka-marquises.mp4'};
+
+    function getImageUrl(key){return LOCAL_IMAGES[key]||null}
+    function createGallery(keys){
+        if(!keys||!keys.length)return'';
+        return'<div class="media-gallery">'+keys.map(function(k){
+            const url=getImageUrl(k);
+            return url?'<img src="'+url+'" class="media-item" onclick="event.stopPropagation();openImageModal(\''+url+'\')" loading="lazy" onerror="this.style.display=\'none\'">':'<div class="image-fallback">📷</div>';
+        }).join('')+'</div>';
+    }
+    function createVideo(key){
+        if(!key||!LOCAL_VIDEOS[key])return'';
+        return'<video class="local-video" controls preload="metadata"><source src="'+LOCAL_VIDEOS[key]+'" type="video/mp4"></video>';
+    }
+
+    // ═══════════════════════════════════════════════════
+    // ÉTAT
+    // ═══════════════════════════════════════════════════
+    const state={lang:'fr',tab:'legends',island:'all',query:'',fav:JSON.parse(localStorage.getItem('marquises-fav')||'[]'),audioEnabled:true,isSpeaking:false};
+
+    // ═══════════════════════════════════════════════════
+    // TRADUCTIONS
+    // ═══════════════════════════════════════════════════
+    const i18n={
+        fr:{title:'Îles Marquises',subtitle:'Te Henua Enata - La Terre des Hommes',search:'🔍 Rechercher...',audioReady:'🔇 Prêt pour la lecture',audioOff:'🔇 Audio désactivé',listen:'🔊 Écouter',listening:'⏳ Lecture...'},
+        en:{title:'Marquesas Islands',subtitle:'Te Henua Enata - The Land of Men',search:'🔍 Search...',audioReady:'🔇 Ready for audio',audioOff:'🔇 Audio disabled',listen:'🔊 Listen',listening:'⏳ Playing...'},
+        mrq:{title:'Te Fenua Enata',subtitle:'Te Henua Enana - Te Kaoha Nui',search:'🔍 E imi...',audioReady:'🔇 Te faaroo',audioOff:'🔇 Aita faaroo',listen:'🔊 Faaroo',listening:'⏳ Te faaroo...'}
+    };
+
+    // ═══════════════════════════════════════════════════
+    // SYNTHÈSE VOCALE
+    // ═══════════════════════════════════════════════════
+    function speak(text,cb){
+        if(!state.audioEnabled)return;
+        if(!('speechSynthesis' in window)){showToast('🔇 Non supporté');return}
+        window.speechSynthesis.cancel();state.isSpeaking=true;updateAudioUI();
+        const u=new SpeechSynthesisUtterance(text);
+        u.lang=state.lang==='mrq'?'ty-PF':state.lang==='en'?'en-US':'fr-FR';
+        u.rate=0.85;u.onend=function(){state.isSpeaking=false;updateAudioUI();if(cb)cb()};
+        u.onerror=function(){state.isSpeaking=false;updateAudioUI()};
+        window.speechSynthesis.speak(u);
+    }
+    function stopSpeaking(){window.speechSynthesis.cancel();state.isSpeaking=false;updateAudioUI()}
+    function toggleAudio(){state.audioEnabled=!state.audioEnabled;if(!state.audioEnabled)stopSpeaking();updateAudioUI()}
+    function updateAudioUI(){
+        const btn=document.getElementById('audio-toggle'),st=document.getElementById('audio-status'),t=i18n[state.lang];
+        if(state.isSpeaking){btn.textContent='⏸️';btn.classList.add('playing');st.textContent=t.listening}
+        else if(state.audioEnabled){btn.textContent='🔊';btn.classList.remove('playing');st.textContent=t.audioReady}
+        else{btn.textContent='🔇';btn.classList.remove('playing');st.textContent=t.audioOff}
+    }
+
+    // ═══════════════════════════════════════════════════
+    // DONNÉES MARQUISES (ÉTOFFÉES)
+    // ═══════════════════════════════════════════════════
+    const data={
+        legends:{
+            fr:[
+                {id:'leg1',icon:'🗿',title:'La Légende de Paeke',text:'Le site sacré de Paeke à Nuku Hiva abrite les plus grands tiki des Marquises. Selon la légende, le chef Paeke fut transformé en pierre par les dieux pour avoir osé défier leur autorité. Il devint le gardien éternel de la vallée, protégeant son peuple même dans la mort.',tag:'Nuku Hiva',island:'nuku-hiva',images:['tiki-paeke','nuku-hiva']},
+                {id:'leg2',icon:'🐢',title:'La Tortue Sacrée de Hiva Oa',text:'Honu Nui, une tortue géante sacrée, protégeait la baie d\'Atuona. Les anciens racontent qu\'elle guidait les pirogues vers les zones de pêche abondantes et apparaissait les nuits de pleine lune pour bénir les nouveau-nés.',tag:'Hiva Oa',island:'hiva-oa',images:['honu-tortue','hiva-oa']},
+                {id:'leg3',icon:'🌋',title:'Le Dieu de la Montagne Temetiu',text:'Temetiu, le plus haut sommet de Hiva Oa (1276m), est la demeure du dieu Tiki. Les nuages accrochés au sommet sont le souffle du dieu. Les anciens y déposaient des offrandes pour obtenir sa protection.',tag:'Hiva Oa',island:'hiva-oa',images:['hiva-oa']},
+                {id:'leg4',icon:'👻',title:'Les Esprits Gardiens des Tiki',text:'Les tiki de pierre dispersés dans les vallées abritent les mana (esprits) des ancêtres. Offrir une fleur de tiaré à un tiki apporte protection. Le négliger attire le malheur.',tag:'Toutes les îles',island:'all',images:['tiki-paeke']},
+                {id:'leg5',icon:'⛰️',title:'Les Piliers du Ciel d\'Ua Pou',text:'Les pics volcaniques spectaculaires d\'Ua Pou sont les piliers qui soutiennent le ciel. Le dieu Oatea les plaça pour empêcher le ciel de s\'effondrer sur la terre.',tag:'Ua Pou',island:'ua-pou',images:['ua-pou']},
+                {id:'leg6',icon:'🐴',title:'Le Cheval Sacré d\'Ua Huka',text:'Ua Huka est l\'île aux chevaux. Un cheval blanc mystique galope sur les plateaux désertiques, guidant les voyageurs perdus vers l\'eau et la sécurité.',tag:'Ua Huka',island:'ua-huka',images:['ua-huka']},
+                {id:'leg7',icon:'🐚',title:'Le Lagon de Tahuata',text:'Les eaux cristallines de Tahuata abritent des esprits marins bienveillants. Les pêcheurs chantent encore les mélodies ancestrales pour les honorer.',tag:'Tahuata',island:'tahuata',images:['tahuata']},
+                {id:'leg8',icon:'🌿',title:'La Vallée des Rois de Fatu Hiva',text:'Fatu Hiva abrite la Vallée des Rois, où reposent les anciens chefs marquisiens. La végétation luxuriante protège leurs tombes sacrées.',tag:'Fatu Hiva',island:'fatu-hiva',images:['fatu-hiva']}
+            ],
+            en:[
+                {id:'leg1',icon:'🗿',title:'The Legend of Paeke',text:'The sacred site of Paeke in Nuku Hiva houses the largest tiki. Chief Paeke was turned to stone for defying the gods.',tag:'Nuku Hiva',island:'nuku-hiva',images:['tiki-paeke','nuku-hiva']},
+                {id:'leg2',icon:'🐢',title:'Sacred Turtle of Hiva Oa',text:'Honu Nui, a giant sacred turtle, protected Atuona Bay and guided canoes to fishing grounds.',tag:'Hiva Oa',island:'hiva-oa',images:['honu-tortue','hiva-oa']},
+                {id:'leg3',icon:'🌋',title:'Mountain God Temetiu',text:'Temetiu, highest peak of Hiva Oa, is home to god Tiki. Summit clouds are his breath.',tag:'Hiva Oa',island:'hiva-oa',images:['hiva-oa']},
+                {id:'leg4',icon:'👻',title:'Guardian Spirits of Tiki',text:'Stone tiki house ancestral mana. Offering a tiare flower brings protection.',tag:'All islands',island:'all',images:['tiki-paeke']},
+                {id:'leg5',icon:'⛰️',title:'Sky Pillars of Ua Pou',text:'Volcanic peaks of Ua Pou are pillars supporting the sky, placed by god Oatea.',tag:'Ua Pou',island:'ua-pou',images:['ua-pou']},
+                {id:'leg6',icon:'🐴',title:'Sacred Horse of Ua Huka',text:'A mystical white horse gallops across desert plateaus, guiding lost travelers.',tag:'Ua Huka',island:'ua-huka',images:['ua-huka']},
+                {id:'leg7',icon:'🐚',title:'Tahuata Lagoon',text:'Crystal waters of Tahuata shelter benevolent sea spirits.',tag:'Tahuata',island:'tahuata',images:['tahuata']},
+                {id:'leg8',icon:'🌿',title:'Valley of Kings - Fatu Hiva',text:'Fatu Hiva houses the Valley of Kings where ancient chiefs rest.',tag:'Fatu Hiva',island:'fatu-hiva',images:['fatu-hiva']}
+            ],
+            mrq:[
+                {id:'leg1',icon:'🗿',title:'Te Tuhuna no Paeke',text:'Te vahi tapu o Paeke i Nuku Hiva, te vai ra te Tiki nui roa. Ua riro te arii Paeke i te ofa\'i no te patoi i te atua.',tag:'Nuku Hiva',island:'nuku-hiva',images:['tiki-paeke','nuku-hiva']},
+                {id:'leg2',icon:'🐢',title:'Te Honu Tapu o Hiva Oa',text:'Te honu nui Honu Nui, ua tiaki i te tai o Atuona. Ua arata\'i i na va\'a tupuna i te tai i\'a nui.',tag:'Hiva Oa',island:'hiva-oa',images:['honu-tortue','hiva-oa']},
+                {id:'leg3',icon:'🌋',title:'Te Atua Mou\'a Temetiu',text:'Temetiu, te mou\'a teitei o Hiva Oa, te fare o te atua Tiki. Te aho o te atua te mau ata.',tag:'Hiva Oa',island:'hiva-oa',images:['hiva-oa']},
+                {id:'leg4',icon:'👻',title:'Te Tupapau Tiai o te Tiki',text:'Te Tiki ofa\'i e vai ra te mana tupuna. E horoa i te tiare no te paruru.',tag:'Te fenua ati',island:'all',images:['tiki-paeke']},
+                {id:'leg5',icon:'⛰️',title:'Te Pou o te Rai i Ua Pou',text:'Te mou\'a auahi o Ua Pou, te pou e tapea i te rai. Na te atua Oatea i tuu.',tag:'Ua Pou',island:'ua-pou',images:['ua-pou']},
+                {id:'leg6',icon:'🐴',title:'Te Puaa Horofenua Tapu o Ua Huka',text:'Te puaa horofenua uouo e horo i ni\'a i te plateaux. E arata\'i i te taata mo\'e.',tag:'Ua Huka',island:'ua-huka',images:['ua-huka']},
+                {id:'leg7',icon:'🐚',title:'Te Tai o Tahuata',text:'Te tai aniani o Tahuata, te vai ra te varua tai maita\'i.',tag:'Tahuata',island:'tahuata',images:['tahuata']},
+                {id:'leg8',icon:'🌿',title:'Te Aru o te Arii i Fatu Hiva',text:'Fatu Hiva, te vai ra te Aru o te Arii. Te vahi taotoraa o te arii tupuna.',tag:'Fatu Hiva',island:'fatu-hiva',images:['fatu-hiva']}
+            ]
+        },
+        medicinal:{
+            fr:[
+                {id:'med1',icon:'🌺',title:'Nono (Morinda citrifolia)',text:'Le Nono est la plante médicinale la plus importante des Marquises. Utilisé depuis des millénaires par les guérisseurs (tau\'a). Renforce le système immunitaire, traite les infections, soulage les douleurs articulaires. Les feuilles en cataplasme cicatrisent les plaies.',tag:'Plante sacrée',island:'all',images:['nono-plante']},
+                {id:'med2',icon:'🌴',title:'Kava (Piper methysticum)',text:'Plante rituelle essentielle. Consommée lors des cérémonies pour ses propriétés calmantes. Réduit l\'anxiété, favorise le sommeil, soulage les douleurs musculaires. Les racines sont séchées et broyées.',tag:'Plante rituelle',island:'all',images:['kava-racine']},
+                {id:'med3',icon:'🌿',title:'Monoï - Huile Sacrée',text:'Huile sacrée obtenue par macération de fleurs de Tiare dans l\'huile de coco. Hydratation intense, protection solaire naturelle, cicatrisation des petites plaies. Base des massages traditionnels marquisiens.',tag:'Huile sacrée',island:'all',images:['monoi']},
+                {id:'med4',icon:'🪵',title:'Tamanu (Calophyllum inophyllum)',text:'Arbre sacré dont l\'huile est un puissant cicatrisant. Utilisée pour les brûlures, l\'eczéma, les douleurs rhumatismales. Les noix sont séchées au soleil puis pressées à froid.',tag:'Cicatrisant puissant',island:'all',images:['tamanu']},
+                {id:'med5',icon:'🌱',title:'Re\'a (Curcuma longa)',text:'Curcuma sacré utilisé comme anti-inflammatoire puissant. Le rhizome frais est râpé pour les cataplasmes. Séché et réduit en poudre, il est consommé avec du miel.',tag:'Anti-inflammatoire',island:'all',images:['nono-plante']},
+                {id:'med6',icon:'🍃',title:'Tahinu (Heliotropium arboreum)',text:'Arbuste côtier essentiel. Ses feuilles écrasées soignent les piqûres de poissons-pierres et d\'oursins. Soulage les coups de soleil et les irritations cutanées.',tag:'Remède marin',island:'all',images:['honu-tortue']}
+            ],
+            en:[
+                {id:'med1',icon:'🌺',title:'Nono (Morinda citrifolia)',text:'The most important medicinal plant. Used by healers for millennia. Strengthens immunity.',tag:'Sacred plant',island:'all',images:['nono-plante']},
+                {id:'med2',icon:'🌴',title:'Kava (Piper methysticum)',text:'Essential ritual plant. Calming properties. Reduces anxiety, promotes sleep.',tag:'Ritual plant',island:'all',images:['kava-racine']},
+                {id:'med3',icon:'🌿',title:'Monoi - Sacred Oil',text:'Sacred oil from Tiare flowers in coconut oil. Deep hydration, natural sun protection.',tag:'Sacred oil',island:'all',images:['monoi']},
+                {id:'med4',icon:'🪵',title:'Tamanu (Calophyllum inophyllum)',text:'Sacred tree. Powerful healing oil for burns, eczema, rheumatic pain.',tag:'Powerful healer',island:'all',images:['tamanu']},
+                {id:'med5',icon:'🌱',title:'Re\'a (Curcuma longa)',text:'Sacred turmeric. Powerful anti-inflammatory. Fresh rhizome for poultices.',tag:'Anti-inflammatory',island:'all',images:['nono-plante']},
+                {id:'med6',icon:'🍃',title:'Tahinu (Heliotropium arboreum)',text:'Coastal shrub. Crushed leaves treat stonefish and sea urchin stings.',tag:'Marine remedy',island:'all',images:['honu-tortue']}
+            ],
+            mrq:[
+                {id:'med1',icon:'🌺',title:'Te Nono',text:'Te tupu raau mea nui o te tau\'a enana. Haapuai i te tino, faaora i te ma\'i.',tag:'Tupu mo\'a',island:'all',images:['nono-plante']},
+                {id:'med2',icon:'🌴',title:'Te Kava',text:'Te tupu rituelle. Haamǎrǔ i te peapea, faaoho i te taoto.',tag:'Tupu rituelle',island:'all',images:['kava-racine']},
+                {id:'med3',icon:'🌿',title:'Te Mono\'i',text:'Te hinu mo\'a. Faaanahiraa Tiare i te hinu haari.',tag:'Hinu mo\'a',island:'all',images:['monoi']},
+                {id:'med4',icon:'🪵',title:'Te Tamanu',text:'Te tumu mo\'a. Te hinu faaora puai no te auahi e te ma\'i iri.',tag:'Faaora puai',island:'all',images:['tamanu']},
+                {id:'med5',icon:'🌱',title:'Te Re\'a',text:'Te Re\'a mo\'a. Anti-inflammatoire puai. E peneihia no te tapoi.',tag:'Anti-inflammatoire',island:'all',images:['nono-plante']},
+                {id:'med6',icon:'🍃',title:'Te Tahinu',text:'Te tumu tai. Te rau peni no te patia iriti e te vana.',tag:'Raau tai',island:'all',images:['honu-tortue']}
+            ]
+        },
+        personalities:{
+            fr:[
+                {id:'pers1',icon:'🎨',name:'Paul Gauguin',text:'Le célèbre peintre post-impressionniste a passé ses dernières années à Hiva Oa (1901-1903). Il y construit sa "Maison du Jouir" et peint ses œuvres les plus puissantes, inspirées par la culture marquisienne.',tag:'Hiva Oa',island:'hiva-oa',images:['gauguin','hiva-oa']},
+                {id:'pers2',icon:'🎵',name:'Jacques Brel',text:'Le poète et chanteur belge a choisi Atuona comme ultime refuge (1975-1978). Il y compose "Les Marquises", son chef-d\'œuvre testamentaire. Son avion "Jojo" est exposé à Atuona.',tag:'Hiva Oa',island:'hiva-oa',images:['brel','hiva-oa']},
+                {id:'pers3',icon:'📖',name:'Herman Melville',text:'L\'auteur de Moby Dick a vécu parmi les Taïpi de Nuku Hiva en 1842 après avoir déserté son baleinier. Cette expérience inspire son premier roman "Taïpi".',tag:'Nuku Hiva',island:'nuku-hiva',images:['melville','nuku-hiva']},
+                {id:'pers4',icon:'👑',name:'Chef Pakoko',text:'Dernier grand chef guerrier de Nuku Hiva. Il mena la résistance contre la colonisation française en 1842. Capturé et exécuté, il devint un symbole de la résistance marquisienne.',tag:'Nuku Hiva',island:'nuku-hiva',images:['nuku-hiva']},
+                {id:'pers5',icon:'🎭',name:'Teiki Huukena',text:'Maître tatoueur traditionnel (tuhuna patu tiki). A consacré sa vie à faire revivre l\'art du tatouage marquisien authentique en étudiant les motifs anciens.',tag:'Hiva Oa',island:'hiva-oa',images:['tatouage','hiva-oa']}
+            ],
+            en:[
+                {id:'pers1',icon:'🎨',name:'Paul Gauguin',text:'Post-impressionist painter. Final years in Hiva Oa (1901-1903). Built "House of Pleasure".',tag:'Hiva Oa',island:'hiva-oa',images:['gauguin','hiva-oa']},
+                {id:'pers2',icon:'🎵',name:'Jacques Brel',text:'Belgian poet. Refuge in Atuona (1975-1978). Composed "Les Marquises".',tag:'Hiva Oa',island:'hiva-oa',images:['brel','hiva-oa']},
+                {id:'pers3',icon:'📖',name:'Herman Melville',text:'Moby Dick author. Lived among Nuku Hiva Taïpi in 1842. Wrote "Typee".',tag:'Nuku Hiva',island:'nuku-hiva',images:['melville','nuku-hiva']},
+                {id:'pers4',icon:'👑',name:'Chief Pakoko',text:'Last great warrior chief. Led resistance against French colonization in 1842.',tag:'Nuku Hiva',island:'nuku-hiva',images:['nuku-hiva']},
+                {id:'pers5',icon:'🎭',name:'Teiki Huukena',text:'Traditional tattoo master. Revived authentic Marquesan tattooing art.',tag:'Hiva Oa',island:'hiva-oa',images:['tatouage','hiva-oa']}
+            ],
+            mrq:[
+                {id:'pers1',icon:'🎨',name:'Paul Gauguin',text:'Te taata pena hoho\'a. Noho i Hiva Oa (1901-1903). Ua haamau i te "Fare o te Oaoa".',tag:'Hiva Oa',island:'hiva-oa',images:['gauguin','hiva-oa']},
+                {id:'pers2',icon:'🎵',name:'Jacques Brel',text:'Te taata himene. Haere i Atuona (1975-1978). Papa\'i "Te Fenua Enata".',tag:'Hiva Oa',island:'hiva-oa',images:['brel','hiva-oa']},
+                {id:'pers3',icon:'📖',name:'Herman Melville',text:'Taata papai Moby Dick. Ora i rotopu i te Taïpi o Nuku Hiva i 1842.',tag:'Nuku Hiva',island:'nuku-hiva',images:['melville','nuku-hiva']},
+                {id:'pers4',icon:'👑',name:'Te Arii Pakoko',text:'Te arii tamatoa hopea. Ua arata\'i i te patoiraa i te Farani i 1842.',tag:'Nuku Hiva',island:'nuku-hiva',images:['nuku-hiva']},
+                {id:'pers5',icon:'🎭',name:'Teiki Huukena',text:'Tuhuna patu tiki. Ua faaora i te ravea patu tiki enana mau.',tag:'Hiva Oa',island:'hiva-oa',images:['tatouage','hiva-oa']}
+            ]
+        }
+    };
+
+    // ═══════════════════════════════════════════════════
+    // FONCTIONS UTILITAIRES
+    // ═══════════════════════════════════════════════════
+    document.addEventListener('click',function(e){
+        const emojis=['🗿','🐢','🌺','🌿','🦎','🐚','⛰️','🌊'];
+        const p=document.createElement('div');p.className='particle';
+        p.textContent=emojis[Math.floor(Math.random()*emojis.length)];
+        p.style.left=e.clientX+'px';p.style.top=e.clientY+'px';
+        document.body.appendChild(p);setTimeout(function(){p.remove()},2000);
+    });
+
+    function showToast(msg){const t=document.createElement('div');t.className='toast';t.textContent=msg;document.body.appendChild(t);setTimeout(function(){t.style.opacity='0';setTimeout(function(){t.remove()},300)},2000)}
+    function openImageModal(url){const m=document.getElementById('modal'),c=document.getElementById('modal-content');c.innerHTML='<button class="modal-close" onclick="closeModal()">✕</button><img src="'+url+'" style="width:100%;border-radius:12px">';m.classList.add('active')}
+    function openModal(content){const m=document.getElementById('modal'),c=document.getElementById('modal-content');c.innerHTML='<button class="modal-close" onclick="closeModal()">✕</button>'+content;m.classList.add('active')}
+    function closeModal(){document.getElementById('modal').classList.remove('active')}
+    document.getElementById('modal').addEventListener('click',function(e){if(e.target===this)closeModal()});
+
+    function toggleFav(id){const i=state.fav.indexOf(id);if(i>-1){state.fav.splice(i,1);showToast('💔 Retiré')}else{state.fav.push(id);showToast('⭐ Ajouté')}localStorage.setItem('marquises-fav',JSON.stringify(state.fav));render()}
+    function isFav(id){return state.fav.includes(id)}
+
+    // ═══════════════════════════════════════════════════
+    // RENDU
+    // ═══════════════════════════════════════════════════
+    function render(){
+        const main=document.getElementById('content'),submenu=document.getElementById('submenu');
+        const d=data[state.tab]?.[state.lang]||[],t=i18n[state.lang]||i18n.fr;
+        document.getElementById('header-title').textContent=t.title;
+        document.getElementById('header-subtitle').textContent=t.subtitle;
+        document.getElementById('search-input').placeholder=t.search;
+        updateAudioUI();
+        let f=d;
+        if(state.island!=='all')f=f.filter(function(i){return i.island===state.island||i.island==='all'});
+        if(state.query){const q=state.query.toLowerCase();f=f.filter(function(i){return(i.title||'').toLowerCase().includes(q)||(i.text||'').toLowerCase().includes(q)})}
+
+        const islands=[{key:'all',label:{fr:'🗿 Toutes',en:'🗿 All',mrq:'🗿 Ati'}},{key:'nuku-hiva',label:{fr:'Nuku Hiva',en:'Nuku Hiva',mrq:'Nuku Hiva'}},{key:'hiva-oa',label:{fr:'Hiva Oa',en:'Hiva Oa',mrq:'Hiva Oa'}},{key:'ua-pou',label:{fr:'Ua Pou',en:'Ua Pou',mrq:'Ua Pou'}},{key:'ua-huka',label:{fr:'Ua Huka',en:'Ua Huka',mrq:'Ua Huka'}},{key:'tahuata',label:{fr:'Tahuata',en:'Tahuata',mrq:'Tahuata'}},{key:'fatu-hiva',label:{fr:'Fatu Hiva',en:'Fatu Hiva',mrq:'Fatu Hiva'}}];
+        submenu.innerHTML=islands.map(function(a){const active=state.island===a.key?' active':'';return'<button class="submenu-btn'+active+'" data-island="'+a.key+'"><span class="island-icon">'+(a.key==='all'?'🗿':a.key==='nuku-hiva'?'🗿':a.key==='hiva-oa'?'🎨':a.key==='ua-pou'?'⛰️':a.key==='ua-huka'?'🐴':a.key==='tahuata'?'🐚':'🌿')+'</span>'+a.label[state.lang]+'</button>'}).join('');
+
+        let h='';
+        if(state.tab==='map'){
+            h='<div id="map-container"><div id="map"></div></div><p style="text-align:center;margin-top:8px;color:var(--text-light)">📍 Les 6 îles habitées des Marquises</p>';
+            setTimeout(function(){
+                const map=L.map('map').setView([-9.0,-139.5],8);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18}).addTo(map);
+                const isl={nukuhiva:{c:[-8.87,-140.10],n:'Nuku Hiva'},hivaoa:{c:[-9.78,-139.02],n:'Hiva Oa'},uapou:{c:[-9.40,-140.07],n:'Ua Pou'},uahuka:{c:[-8.90,-139.55],n:'Ua Huka'},tahuata:{c:[-9.95,-139.08],n:'Tahuata'},fatuhiva:{c:[-10.47,-138.65],n:'Fatu Hiva'}};
+                Object.entries(isl).forEach(function(e){L.circleMarker(e[1].c,{radius:10,fillColor:'#1a5c2e',color:'white',weight:2,fillOpacity:0.8}).addTo(map).bindPopup('<b>🗿 '+e[1].n+'</b>')});
+            },100);
+        }else{
+            h=f.length?f.map(function(i,n){const favClass=isFav(i.id)?' active':'';const favIcon=isFav(i.id)?'⭐':'☆';const gallery=i.images?createGallery(i.images):'';const video=i.video?createVideo(i.video):'';const mc='<h3 style=color:var(--primary)>'+i.icon+' '+i.title+'</h3><p>'+i.text+'</p>'+gallery+video+'<button class=speak-card-btn onclick=event.stopPropagation();speak(\''+i.text.replace(/'/g,"\\'")+'\')>🔊 '+t.listen+'</button>';return'<div class="card" style="animation-delay:'+(n*0.08)+'s" onclick="openModal(\''+mc.replace(/'/g,"\\'")+'\')"><span class="fav-star'+favClass+'" onclick="event.stopPropagation();toggleFav(\''+i.id+'\')">'+favIcon+'</span><h3>'+i.icon+' '+i.title+'</h3><p>'+i.text.substring(0,120)+(i.text.length>120?'...':'')+'</p><button class="speak-card-btn" onclick="event.stopPropagation();var b=this;speak(\''+i.text.replace(/'/g,"\\'")+'\',function(){b.classList.remove(\'playing\')});b.classList.add(\'playing\')"><span class="spinner"></span> '+t.listen+'</button>'+(i.tag?'<span class="tag">📍 '+i.tag+'</span>':'')+(i.images?'<span class="tag" style="background:#e3f2fd;color:#1565c0">📸 '+(i.images.length)+' photos</span>':'')+(i.video?'<span class="tag" style="background:#fce4ec;color:#c62828">🎬 Vidéo</span>':'')+'</div>'}).join(''):'<div style="text-align:center;padding:40px;color:var(--text-light)"><p style="font-size:3rem">🔍</p><p>Aucun résultat</p></div>';
+        }
+        main.innerHTML=h;
+        document.querySelectorAll('.submenu-btn').forEach(function(b){b.addEventListener('click',function(){state.island=this.dataset.island;render()})});
+    }
+
+    // ═══════════════════════════════════════════════════
+    // EVENTS
+    // ═══════════════════════════════════════════════════
+    document.querySelectorAll('.nav-btn').forEach(function(b){b.addEventListener('click',function(){document.querySelectorAll('.nav-btn').forEach(function(x){x.classList.remove('active')});b.classList.add('active');state.tab=b.dataset.tab;state.island='all';state.query='';document.getElementById('search-input').value='';render()})});
+    document.getElementById('language-selector').addEventListener('change',function(e){state.lang=e.target.value;localStorage.setItem('marquises-lang',state.lang);stopSpeaking();render()});
+    document.getElementById('search-input').addEventListener('input',function(e){state.query=e.target.value.trim();render()});
+    document.getElementById('audio-toggle').addEventListener('click',toggleAudio);
+    var sl=localStorage.getItem('marquises-lang');if(sl&&data.legends[sl]){state.lang=sl;document.getElementById('language-selector').value=sl}
+    render();
+    </script>
+</body>
+</html>
